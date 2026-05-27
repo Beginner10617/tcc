@@ -1,5 +1,6 @@
 #ifndef PRE_PROCESSOR_H
 #define PRE_PROCESSOR_H
+#include "stdbool.h"
 #include "stddef.h"
 typedef struct {
   char *data;
@@ -13,8 +14,8 @@ void buffer_free(Buffer *b);
 void buffer_append_char(Buffer *b, char c);
 void buffer_append_cstr(Buffer *b, const char *s);
 
-Buffer preprocess_file(const char *filePath);
-void preprocess_into(Buffer *out, const char *filePath);
+char *read_file(const char *filePath);
+Buffer preprocess(const char *src);
 
 /* Template
 Buffer src;

@@ -1,6 +1,8 @@
 #include "preprocessor.h"
+#include "ctype.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "string.h"
 
 void buffer_init(Buffer *b) {
   b->size = 0;
@@ -59,14 +61,58 @@ char *read_file(const char *filePath) {
   return buf;
 }
 
-/*
-... = multiple spaces allowed (would be ignored)
-preprocess(src) :
- create and initialise Buffer out;
- read all preprocess lines - '...#include..."xyz.h"';
- if any such lines encountered :
-  tmp = read_file("xyz.h");
-  out = out + preprocess(tmp);
-  i.e. concat ( a = a + b -> buffer_append_cstr(a, b.data) );
-  else : out = out + cstr_form_of_the_line;
- */
+Buffer preprocess(const char *src) {
+  Buffer out;
+  buffer_init(&out);
+  char tmp[10]; // include, ifndef, endif, define in future
+  size_t i = 0, line_start, line_end, line_len;
+  while (src[i] != '\0') {
+    line_start = i;
+    while (src[i] != '\0' || src[i] != '\n')
+      i++;
+    line_end = i;
+    line_len = line_end - line_start;
+
+    char line[line_len + 1];
+    line[line_len] = '\0';
+
+    // ignore spaces
+    char *head = line;
+    while (*head && isspace((unsigned char)*head))
+      head++;
+
+    // handle preprocess
+    if (strncmp(head, "#include", 8) == 0) {
+      head += 8;
+
+      while (*head && isspace((unsigned char)*head))
+        head++;
+
+      if (*head == '"') {
+        head++;
+        char filename[line_len + 1];
+        size_t j = 0;
+        while (*head && isspace((unsigned char)*head)) {
+          filename[j] = *head;
+          head++;
+          j++;
+        }
+
+        filename[j] = '\0';
+
+        char *tmp = read_file(filename);
+
+        Buffer included = preprocess(tmp);
+        buffer_append_cstr(&out, included.data);
+        buffer_free(&included);
+        free(tmp);
+      }
+    } else {
+      buffer_append_cstr(&out, line);
+      buffer_append_char(&out, '\n');
+    }
+    if (src[i] == '\n')
+      i++;
+  }
+  return out;
+}

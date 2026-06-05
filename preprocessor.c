@@ -82,6 +82,7 @@ Buffer preprocess(const char *src) {
       head++;
 
     // handle preprocess
+    // #include
     if (strncmp(head, "#include", 8) == 0) {
       head += 8;
 
@@ -116,3 +117,14 @@ Buffer preprocess(const char *src) {
   }
   return out;
 }
+// #define (object and function macros)
+// #undef
+// #ifdef
+// #ifndef
+// #if
+// #elif
+// #else
+// #endif
+// #error
+// #pragma once
+// Take care of macro expansion recursion

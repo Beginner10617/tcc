@@ -16,18 +16,4 @@ void buffer_append_cstr(Buffer *b, const char *s);
 
 char *read_file(const char *filePath);
 Buffer preprocess(const char *src);
-
-/* Template
-Buffer src;
-buffer_init(&src);
-
-preprocess_into(&src, "main.c");
-
-Tokenizer t = create_tokenizer(src.data);
-TokenStream ts = tokenize(&t);
-parse(&ts);
-
-tokenstream_free(&ts);
-buffer_free(&src);
-*/
 #endif

@@ -14,7 +14,7 @@ typedef struct {
 // constructor
 HashMap *hashmap_create(size_t bucket_count);
 // re-hash
-void hashmap_resize(HashMap *map, size_t new_bucket_size);
+void hashmap_resize(HashMap *map, size_t new_bucket_count);
 // compute load factor
 float load_factor(HashMap *map);
 // hash function

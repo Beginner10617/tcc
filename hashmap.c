@@ -1,0 +1,161 @@
+#include "hashmap.h"
+#include "stdio.h"
+#include "string.h"
+#include <stddef.h>
+#include <stdlib.h>
+#define ERROR "\x1b[31m"
+#define WARNING "\033[33m"
+#define COLOR_RESET "\x1b[0m"
+
+HashMap *hashmap_create(size_t bucket_count) {
+  HashMap *out = malloc(sizeof(HashMap));
+  if (out == NULL) {
+    printf(ERROR "Unable to allocate space for hashmap\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+  out->bucket_count = bucket_count;
+  out->buckets = malloc(sizeof(Entry *) * bucket_count);
+  if (out->buckets == NULL) {
+    printf(ERROR "Unable to allocate bucket for hash-map\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+  for (size_t i = 0; i < bucket_count; i++)
+    out->buckets[i] = NULL;
+  return out;
+}
+
+void hashmap_resize(HashMap *map, size_t new_bucket_count) {
+  if (map == NULL) {
+    printf(ERROR "NULL pointer passed as map\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+  if (map->bucket_count > new_bucket_count) {
+    printf(WARNING
+           "Reducing bucket size might introduce collisions\n" COLOR_RESET);
+  }
+
+  Entry **old_buckets = map->buckets;
+  size_t old_bucket_count = map->bucket_count;
+
+  Entry **new_buckets = calloc(new_bucket_count, sizeof(Entry *));
+
+  if (new_buckets == NULL) {
+    printf(ERROR "Unable to allocate resized hash-map buckets\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+
+  map->buckets = new_buckets;
+  map->bucket_count = new_bucket_count;
+
+  for (size_t i = 0; i < old_bucket_count; i++) {
+
+    Entry *curr = old_buckets[i];
+
+    while (curr != NULL) {
+
+      Entry *next = curr->next;
+
+      size_t bucket_index = hash(curr->key) % new_bucket_count;
+
+      curr->next = new_buckets[bucket_index];
+      new_buckets[bucket_index] = curr;
+
+      curr = next;
+    }
+  }
+
+  free(old_buckets);
+}
+
+float load_factor(HashMap *map) {
+  if (map == NULL) {
+    printf(ERROR "NULL pointer passed as map\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+  size_t num_of_entries = 0;
+  for (size_t i = 0; i < map->bucket_count; i++) {
+    Entry *curr = map->buckets[i];
+    while (curr != NULL) {
+      Entry *next = curr->next;
+      num_of_entries++;
+      curr = next;
+    }
+  }
+  return (float)num_of_entries / (float)map->bucket_count;
+}
+
+unsigned long hash(const char *str) {
+  unsigned long h = 5381;
+  int c;
+
+  while ((c = *str++))
+    h = ((h << 5) + h) + c;
+  return h;
+}
+
+void hashmap_put(HashMap *map, const char *key, void *value) {
+  if (map == NULL) {
+    printf(ERROR "NULL pointer passed as map\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+
+  size_t bucket_index = hash(key) % map->bucket_count;
+  Entry *curr = map->buckets[bucket_index];
+  while (curr != NULL) {
+    if (strcmp(curr->key, key) == 0) {
+      curr->value = value;
+      return;
+    }
+    curr = curr->next;
+  }
+  Entry *new_entry = malloc(sizeof(Entry));
+  new_entry->value = value;
+  new_entry->key = strdup(key);
+  if (new_entry->key == NULL) {
+    printf(ERROR "Insufficient memory for duplicating key\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+  new_entry->next = map->buckets[bucket_index];
+  map->buckets[bucket_index] = new_entry;
+}
+
+void *hashmap_get(HashMap *map, const char *key) {
+  if (map == NULL) {
+    printf(ERROR "NULL pointer passed as map\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+
+  size_t bucket_index = hash(key) % map->bucket_count;
+  Entry *curr = map->buckets[bucket_index];
+  while (curr != NULL) {
+    if (strcmp(curr->key, key) == 0)
+      return curr->value;
+    curr = curr->next;
+  }
+  return NULL;
+}
+
+void hashmap_remove(HashMap *map, const char *key) {
+  if (map == NULL) {
+    printf(ERROR "NULL pointer passed as map\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+
+  size_t bucket_index = hash(key) % map->bucket_count;
+  Entry *curr = map->buckets[bucket_index];
+  Entry *prev = NULL;
+  while (curr != NULL) {
+    if (strcmp(curr->key, key) == 0) {
+      if (prev)
+        prev->next = curr->next;
+      else
+        map->buckets[bucket_index] = curr->next;
+      free(curr->key);
+      free(curr);
+      // HashMap doesn't own the value
+      return;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+}

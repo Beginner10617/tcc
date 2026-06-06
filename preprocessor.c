@@ -1,9 +1,10 @@
 #include "preprocessor.h"
 #include "ctype.h"
+#include "hashmap.h"
+#include "stddef.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
-#include <stdlib.h>
 #define ERROR "\x1b[31m"
 #define WARNING "\033[33m"
 #define COLOR_RESET "\x1b[0m"
@@ -68,9 +69,12 @@ char *read_file(const char *filePath) {
 Buffer preprocess(const char *src) {
   Buffer out;
   buffer_init(&out);
+  size_t bucket_count = 10;
+  HashMap *MacroMap = hashmap_create(bucket_count);
   char tmp[10]; // include, ifndef, endif, define in future
-  size_t i = 0, line_start, line_end, line_len;
+  size_t i = 0, line_start, line_end, line_len, row = 0;
   while (src[i] != '\0') {
+    row++;
     line_start = i;
     while (src[i] != '\0' || src[i] != '\n')
       i++;
@@ -97,15 +101,14 @@ Buffer preprocess(const char *src) {
         head++;
         char filename[line_len + 1];
         size_t j = 0;
-        while (*head && isspace((unsigned char)*head)) {
+        while (*head && *head != '"') {
           filename[j] = *head;
           head++;
           j++;
         }
-        j--;
-        if (filename[j] != '"') {
-          printf("%s\n", line);
-          printf(ERROR "Expected a closing \"\n" COLOR_RESET);
+        if (*head != '"') {
+          printf("line %zu : %s\n", row, line);
+          printf(ERROR "Expected closing \"\n" COLOR_RESET);
           exit(EXIT_FAILURE);
         }
         filename[j] = '\0';
@@ -117,13 +120,45 @@ Buffer preprocess(const char *src) {
         buffer_free(&included);
         free(tmp);
       } else {
-        printf("%s\n", line);
+        printf("line %zu : %s\n", row, line);
         printf(ERROR "Expected a \"\n" COLOR_RESET);
         exit(EXIT_FAILURE);
       }
-    } else if (strncmp(head, "#define", 8) == 0) {
-      // extract macro name
-      // extract macro type, replacement and parameters if any
+    } else if (strncmp(head, "#define", 7) == 0) {
+      head += 7;
+      while (*head && isspace((unsigned char)*head))
+        head++;
+      char macroName[line_len + 1];
+      size_t j = 0;
+      while (*head && (isalnum((unsigned char)*head) || *head == '_')) {
+        macroName[j] = *head;
+        head++;
+        j++;
+      }
+      macroName[j] = '\0';
+      Macro macro;
+      if (*head == '(')
+        // extract replacement and parameters
+        macro.type = FUNCTION;
+      else if (*head == ' ') {
+        // extract replacement
+        macro.type = OBJECT;
+        macro.param_count = 0;
+        macro.parameters = "";
+      } else {
+        macro.type = OBJECT;
+        macro.param_count = 0;
+        macro.parameters = "";
+        macro.replacement = "";
+      }
+
+      // is it already defined?
+      if (hashmap_get(MacroMap, macroName) != NULL) {
+        // warn of re-definition
+        printf("line %zu : %s\n", row, line);
+        printf(WARNING "Re-defining macro %s\n" COLOR_RESET, macroName);
+      }
+      hashmap_put(MacroMap, macroName, &macro);
       // store them as key-value pait in custom hash-map
     } else {
       // Normal line of code (no pre-processing)

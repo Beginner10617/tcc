@@ -8,6 +8,14 @@ typedef struct {
   size_t cap;
 } Buffer;
 
+typedef enum { OBJECT, FUNCTION } macroType;
+typedef struct {
+  macroType type;
+  char *parameters; // ['a', 'b'] -> "a\0b\0"
+  size_t param_count;
+  char *replacement; // a > b -> "a\0>\0b\0"
+} Macro;
+// Use custom hash-map for macro-name : macro mapping
 void buffer_init(Buffer *b);
 void buffer_free(Buffer *b);
 

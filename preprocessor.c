@@ -3,6 +3,10 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include <stdlib.h>
+#define ERROR "\x1b[31m"
+#define WARNING "\033[33m"
+#define COLOR_RESET "\x1b[0m"
 
 void buffer_init(Buffer *b) {
   b->size = 0;
@@ -98,7 +102,12 @@ Buffer preprocess(const char *src) {
           head++;
           j++;
         }
-
+        j--;
+        if (filename[j] != '"') {
+          printf("%s\n", line);
+          printf(ERROR "Expected a closing \"\n" COLOR_RESET);
+          exit(EXIT_FAILURE);
+        }
         filename[j] = '\0';
 
         char *tmp = read_file(filename);
@@ -107,8 +116,17 @@ Buffer preprocess(const char *src) {
         buffer_append_cstr(&out, included.data);
         buffer_free(&included);
         free(tmp);
+      } else {
+        printf("%s\n", line);
+        printf(ERROR "Expected a \"\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
       }
+    } else if (strncmp(head, "#define", 8) == 0) {
+      // extract macro name
+      // extract macro type, replacement and parameters if any
+      // store them as key-value pait in custom hash-map
     } else {
+      // Normal line of code (no pre-processing)
       buffer_append_cstr(&out, line);
       buffer_append_char(&out, '\n');
     }

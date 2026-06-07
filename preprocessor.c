@@ -129,7 +129,7 @@ Buffer preprocess(const char *src, bool debug) {
         exit(EXIT_FAILURE);
       }
     } else if (strncmp(head, "#define", 7) == 0) {
-      // #define <MACRO-NAME> [PARAMETERS] <REPLACEMENT>
+      // #define <MACRO-NAME>
       head += 7;
       while (*head && isspace((unsigned char)*head))
         head++;
@@ -152,44 +152,15 @@ Buffer preprocess(const char *src, bool debug) {
         printf("line %zu : %s\n", row, line);
         printf(WARNING "Re-defining macro %s\n" COLOR_RESET, macroName);
       }
-      Macro *macro = malloc(sizeof(Macro));
-      if (*head == '(') {
-        // implement it later (ignore for now)
-        macro->type = FUNCTION;
-        printf("line %zu : %s\n", row, line);
-        printf("Function macro not implemented\n");
-        exit(EXIT_FAILURE);
-        // extract parameters and replacement
-      } else if (isspace((unsigned char)*head)) {
-        // extract replacement
-        while (*head && isspace((unsigned char)*head))
-          head++;
-        macro->type = OBJECT;
-        macro->param_count = 0;
-        macro->parameters = NULL;
-        size_t len = 0;
-        while (*(head + len))
-          len++;
-        macro->replacement = malloc(sizeof(char) * (len + 1));
-        len = 0;
-        while (*head) {
-          macro->replacement[len] = *head;
-          len++;
-          head++;
-        }
-        macro->replacement[len] = '\0';
-      } else if (*head == '\0') {
-        macro->type = OBJECT;
-        macro->param_count = 0;
-        macro->parameters = NULL;
-        macro->replacement = strdup("");
-      } else {
+      while (*head && isspace((unsigned char)*head))
+        head++;
+      if (*head) { // ONLY EMPTY MACROS ALLOWED
         printf("line %zu : %s\n", row, line);
         printf("Invalid macro definition\n");
         exit(EXIT_FAILURE);
       }
 
-      hashmap_put(MacroMap, macroName, macro);
+      hashmap_put(MacroMap, macroName, NULL);
       // store them as key-value pait in custom hash-map
     } else if (strncmp(head, "#undef", 6) == 0) {
       // #undef <MACRO-NAME>
@@ -199,8 +170,6 @@ Buffer preprocess(const char *src, bool debug) {
 
     } else {
       // Normal line of code
-      // Tokenize it, and
-      // check for macro-replacements
       buffer_append_cstr(&out, line);
       buffer_append_char(&out, '\n');
     }
@@ -214,13 +183,10 @@ Buffer preprocess(const char *src, bool debug) {
   }
   return out;
 }
-// #define (object and function macros)
+// #define (empty ,acros only)
 // #undef
 // #ifdef
 // #ifndef
-// #if
-// #elif
 // #else
 // #endif
-// #error
 // #pragma once

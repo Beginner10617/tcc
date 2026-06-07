@@ -6,7 +6,6 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
-#include <stdio.h>
 #define ERROR "\x1b[31m"
 #define WARNING "\033[33m"
 #define COLOR_RESET "\x1b[0m"
@@ -192,8 +191,16 @@ Buffer preprocess(const char *src, bool debug) {
 
       hashmap_put(MacroMap, macroName, macro);
       // store them as key-value pait in custom hash-map
+    } else if (strncmp(head, "#undef", 6) == 0) {
+      // #undef <MACRO-NAME>
+      head += 6;
+      while (*head && isspace((unsigned char)*head))
+        head++;
+
     } else {
-      // Normal line of code (no pre-processing)
+      // Normal line of code
+      // Tokenize it, and
+      // check for macro-replacements
       buffer_append_cstr(&out, line);
       buffer_append_char(&out, '\n');
     }
@@ -217,4 +224,3 @@ Buffer preprocess(const char *src, bool debug) {
 // #endif
 // #error
 // #pragma once
-// Take care of macro expansion recursion

@@ -5,6 +5,9 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 #define ERROR "\x1b[31m"
 #define WARNING "\033[33m"
 #define COLOR_RESET "\x1b[0m"
@@ -125,6 +128,7 @@ Buffer preprocess(const char *src) {
         exit(EXIT_FAILURE);
       }
     } else if (strncmp(head, "#define", 7) == 0) {
+      // #define <MACRO-NAME> [PARAMETERS] <REPLACEMENT>
       head += 7;
       while (*head && isspace((unsigned char)*head))
         head++;
@@ -137,18 +141,19 @@ Buffer preprocess(const char *src) {
       }
       macroName[j] = '\0';
       Macro macro;
-      if (*head == '(')
-        // extract replacement and parameters
+      if (*head == '(') {
+        // implement it later (ignore for now)
         macro.type = FUNCTION;
-      else if (*head == ' ') {
+        // extract parameters and replacement
+      } else if (*head == ' ') {
         // extract replacement
         macro.type = OBJECT;
         macro.param_count = 0;
-        macro.parameters = "";
+        macro.parameters = NULL;
       } else {
         macro.type = OBJECT;
         macro.param_count = 0;
-        macro.parameters = "";
+        macro.parameters = NULL;
         macro.replacement = "";
       }
 

@@ -11,9 +11,11 @@ typedef struct {
 typedef enum { OBJECT, FUNCTION } macroType;
 typedef struct {
   macroType type;
-  char *parameters; // ['a', 'b'] -> "a\0b\0"
+
+  char **parameters;
   size_t param_count;
-  char *replacement; // a > b -> "a\0>\0b\0"
+
+  char *replacement; // a > b -> "a,>,b\0"
 } Macro;
 // Use custom hash-map for macro-name : macro mapping
 void buffer_init(Buffer *b);

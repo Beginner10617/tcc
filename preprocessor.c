@@ -1,13 +1,12 @@
 #include "preprocessor.h"
 #include "ctype.h"
+#include "debug.h"
 #include "hashmap.h"
 #include "stddef.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
-#include <ctype.h>
 #include <stdio.h>
-#include <stdlib.h>
 #define ERROR "\x1b[31m"
 #define WARNING "\033[33m"
 #define COLOR_RESET "\x1b[0m"
@@ -43,12 +42,14 @@ void buffer_append_char(Buffer *b, char c) {
 
 void buffer_append_cstr(Buffer *b, const char *s) {
   size_t i = 0;
-  while (s[i] != '\0')
+  while (s[i] != '\0') {
     buffer_append_char(b, s[i]);
+    i++;
+  }
 }
 
 char *read_file(const char *filePath) {
-  FILE *f = fopen(filePath, "rb");
+  FILE *f = fopen(filePath, "r");
   if (!f)
     return NULL;
 
@@ -69,22 +70,24 @@ char *read_file(const char *filePath) {
   return buf;
 }
 
-Buffer preprocess(const char *src) {
+Buffer preprocess(const char *src, bool debug) {
   Buffer out;
   buffer_init(&out);
   size_t bucket_count = 10;
   HashMap *MacroMap = hashmap_create(bucket_count);
-  char tmp[10]; // include, ifndef, endif, define in future
+  // include, ifndef, endif, define in future
   size_t i = 0, line_start, line_end, line_len, row = 0;
   while (src[i] != '\0') {
     row++;
     line_start = i;
-    while (src[i] != '\0' || src[i] != '\n')
+    while (src[i] != '\0' && src[i] != '\n') {
       i++;
+    }
     line_end = i;
     line_len = line_end - line_start;
-
     char line[line_len + 1];
+    for (size_t j = 0; j < line_len; j++)
+      line[j] = src[line_start + j];
     line[line_len] = '\0';
 
     // ignore spaces
@@ -118,9 +121,8 @@ Buffer preprocess(const char *src) {
 
         char *tmp = read_file(filename);
 
-        Buffer included = preprocess(tmp);
+        Buffer included = preprocess(tmp, false);
         buffer_append_cstr(&out, included.data);
-        buffer_free(&included);
         free(tmp);
       } else {
         printf("line %zu : %s\n", row, line);
@@ -197,6 +199,11 @@ Buffer preprocess(const char *src) {
     }
     if (src[i] == '\n')
       i++;
+  }
+  if (debug) {
+    debug_print_hashmap(MacroMap);
+    printf("Completed pre-processing, output:\n");
+    printf("%s\n", out.data);
   }
   return out;
 }

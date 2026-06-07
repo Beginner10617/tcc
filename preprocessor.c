@@ -134,36 +134,61 @@ Buffer preprocess(const char *src) {
         head++;
       char macroName[line_len + 1];
       size_t j = 0;
+      if (!isalpha((unsigned char)*head) && *head != '_') {
+        printf("line %zu : %s\n", row, line);
+        printf(ERROR "Invalid macro name\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
       while (*head && (isalnum((unsigned char)*head) || *head == '_')) {
         macroName[j] = *head;
         head++;
         j++;
       }
       macroName[j] = '\0';
-      Macro macro;
-      if (*head == '(') {
-        // implement it later (ignore for now)
-        macro.type = FUNCTION;
-        // extract parameters and replacement
-      } else if (*head == ' ') {
-        // extract replacement
-        macro.type = OBJECT;
-        macro.param_count = 0;
-        macro.parameters = NULL;
-      } else {
-        macro.type = OBJECT;
-        macro.param_count = 0;
-        macro.parameters = NULL;
-        macro.replacement = "";
-      }
-
       // is it already defined?
       if (hashmap_get(MacroMap, macroName) != NULL) {
         // warn of re-definition
         printf("line %zu : %s\n", row, line);
         printf(WARNING "Re-defining macro %s\n" COLOR_RESET, macroName);
       }
-      hashmap_put(MacroMap, macroName, &macro);
+      Macro *macro = malloc(sizeof(Macro));
+      if (*head == '(') {
+        // implement it later (ignore for now)
+        macro->type = FUNCTION;
+        printf("line %zu : %s\n", row, line);
+        printf("Function macro not implemented\n");
+        exit(EXIT_FAILURE);
+        // extract parameters and replacement
+      } else if (isspace((unsigned char)*head)) {
+        // extract replacement
+        while (*head && isspace((unsigned char)*head))
+          head++;
+        macro->type = OBJECT;
+        macro->param_count = 0;
+        macro->parameters = NULL;
+        size_t len = 0;
+        while (*(head + len))
+          len++;
+        macro->replacement = malloc(sizeof(char) * (len + 1));
+        len = 0;
+        while (*head) {
+          macro->replacement[len] = *head;
+          len++;
+          head++;
+        }
+        macro->replacement[len] = '\0';
+      } else if (*head == '\0') {
+        macro->type = OBJECT;
+        macro->param_count = 0;
+        macro->parameters = NULL;
+        macro->replacement = strdup("");
+      } else {
+        printf("line %zu : %s\n", row, line);
+        printf("Invalid macro definition\n");
+        exit(EXIT_FAILURE);
+      }
+
+      hashmap_put(MacroMap, macroName, macro);
       // store them as key-value pait in custom hash-map
     } else {
       // Normal line of code (no pre-processing)

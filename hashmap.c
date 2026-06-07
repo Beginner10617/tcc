@@ -103,6 +103,7 @@ void hashmap_put(HashMap *map, const char *key, void *value) {
   Entry *curr = map->buckets[bucket_index];
   while (curr != NULL) {
     if (strcmp(curr->key, key) == 0) {
+      free(curr->value);
       curr->value = value;
       return;
     }
@@ -151,8 +152,9 @@ void hashmap_remove(HashMap *map, const char *key) {
       else
         map->buckets[bucket_index] = curr->next;
       free(curr->key);
+      free(curr->value);
       free(curr);
-      // HashMap doesn't own the value
+      // HashMap own the value
       return;
     }
     prev = curr;

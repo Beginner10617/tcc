@@ -69,7 +69,7 @@ char *read_file(const char *filePath) {
   return buf;
 }
 
-Buffer preprocess(const char *src, bool debug) {
+Buffer preprocess(const char *src, const char *fname, bool debug) {
   Buffer out;
   buffer_init(&out);
   size_t bucket_count = 10;
@@ -95,8 +95,8 @@ Buffer preprocess(const char *src, bool debug) {
       head++;
 
     // handle preprocess
-    // #include
     if (strncmp(head, "#include", 8) == 0) {
+      // #include
       head += 8;
 
       while (*head && isspace((unsigned char)*head))
@@ -112,7 +112,7 @@ Buffer preprocess(const char *src, bool debug) {
           j++;
         }
         if (*head != '"') {
-          printf("line %zu : %s\n", row, line);
+          printf("%s line %zu : %s\n", fname, row, line);
           printf(ERROR "Expected closing \"\n" COLOR_RESET);
           exit(EXIT_FAILURE);
         }
@@ -120,11 +120,11 @@ Buffer preprocess(const char *src, bool debug) {
 
         char *tmp = read_file(filename);
 
-        Buffer included = preprocess(tmp, false);
+        Buffer included = preprocess(tmp, filename, false);
         buffer_append_cstr(&out, included.data);
         free(tmp);
       } else {
-        printf("line %zu : %s\n", row, line);
+        printf("%s line %zu : %s\n", fname, row, line);
         printf(ERROR "Expected a \"\n" COLOR_RESET);
         exit(EXIT_FAILURE);
       }
@@ -133,13 +133,17 @@ Buffer preprocess(const char *src, bool debug) {
       head += 7;
       while (*head && isspace((unsigned char)*head))
         head++;
-      char macroName[line_len + 1];
-      size_t j = 0;
       if (!isalpha((unsigned char)*head) && *head != '_') {
-        printf("line %zu : %s\n", row, line);
+        printf("%s line %zu : %s\n", fname, row, line);
         printf(ERROR "Invalid macro name\n" COLOR_RESET);
         exit(EXIT_FAILURE);
       }
+      size_t j = 0;
+      while (*(head + j) &&
+             (isalnum((unsigned char)*(head + j)) || *(head + j) == '_'))
+        j++;
+      char macroName[j];
+      j = 0;
       while (*head && (isalnum((unsigned char)*head) || *head == '_')) {
         macroName[j] = *head;
         head++;
@@ -149,24 +153,43 @@ Buffer preprocess(const char *src, bool debug) {
       // is it already defined?
       if (hashmap_get(MacroMap, macroName) != NULL) {
         // warn of re-definition
-        printf("line %zu : %s\n", row, line);
+        printf("%s line %zu : %s\n", fname, row, line);
         printf(WARNING "Re-defining macro %s\n" COLOR_RESET, macroName);
       }
       while (*head && isspace((unsigned char)*head))
         head++;
       if (*head) { // ONLY EMPTY MACROS ALLOWED
-        printf("line %zu : %s\n", row, line);
+        printf("%s line %zu : %s\n", fname, row, line);
         printf("Invalid macro definition\n");
         exit(EXIT_FAILURE);
       }
 
       hashmap_put(MacroMap, macroName, NULL);
+      if (load_factor(MacroMap) > 0.7f)
+        hashmap_resize(MacroMap, MacroMap->bucket_count * 2);
       // store them as key-value pait in custom hash-map
     } else if (strncmp(head, "#undef", 6) == 0) {
       // #undef <MACRO-NAME>
       head += 6;
       while (*head && isspace((unsigned char)*head))
         head++;
+      size_t len = 0;
+      while (*(head + len) &&
+             (isalnum((unsigned char)*(head + len)) || *(head + len) == '_'))
+        len++;
+      char macroName[len];
+      len = 0;
+      while (*head && (isalnum((unsigned char)*head) || *head == '_')) {
+        macroName[len] = *head;
+        head++;
+        len++;
+      }
+      if (hashmap_get(MacroMap, macroName) == NULL) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Macro not defined\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
+      hashmap_remove(MacroMap, macroName);
 
     } else {
       // Normal line of code

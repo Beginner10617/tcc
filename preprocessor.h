@@ -14,5 +14,5 @@ void buffer_append_char(Buffer *b, char c);
 void buffer_append_cstr(Buffer *b, const char *s);
 
 char *read_file(const char *filePath);
-Buffer preprocess(const char *src, bool debug);
+Buffer preprocess(const char *src, const char *fname, bool debug);
 #endif

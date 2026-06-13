@@ -26,7 +26,7 @@ void stack_push(stack *stk, void *data) {
     stk->data[stk->size] = data;
     stk->size++;
   } else {
-    while (stk->size < stk->cap)
+    while (stk->size >= stk->cap)
       stk->cap++;
     stk->data = realloc(stk->data, stk->cap * sizeof(void *));
     if (stk->data == NULL) {
@@ -47,8 +47,9 @@ void *stack_top(stack *stk) {
 void *stack_pop(stack *stk) {
   if (stk->size) {
     stk->size--;
+    return stk->data[stk->size];
   } else
-    printf(WARNING "Trying to pop an emoty stack\n" COLOR_RESET);
+    printf(WARNING "Trying to pop an empty stack\n" COLOR_RESET);
 
   return NULL;
 }

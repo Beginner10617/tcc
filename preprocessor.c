@@ -1,11 +1,11 @@
 #include "preprocessor.h"
-#include "ctype.h"
 #include "debug.h"
 #include "hashmap.h"
 #include "stddef.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include <ctype.h>
 #define ERROR "\x1b[31m"
 #define WARNING "\033[33m"
 #define COLOR_RESET "\x1b[0m"
@@ -69,11 +69,16 @@ char *read_file(const char *filePath) {
   return buf;
 }
 
-Buffer preprocess(const char *src, const char *fname, bool debug) {
+Buffer preprocess(const char *src, const char *fname, bool debug,
+                  HashMap *incomingMacroMap) {
   Buffer out;
   buffer_init(&out);
   size_t bucket_count = 10;
-  HashMap *MacroMap = hashmap_create(bucket_count);
+  HashMap *MacroMap;
+  if (incomingMacroMap == NULL)
+    MacroMap = hashmap_create(bucket_count);
+  else
+    MacroMap = incomingMacroMap;
   // include, ifndef, endif, define in future
   size_t i = 0, line_start, line_end, line_len, row = 0;
   while (src[i] != '\0') {
@@ -120,7 +125,7 @@ Buffer preprocess(const char *src, const char *fname, bool debug) {
 
         char *tmp = read_file(filename);
 
-        Buffer included = preprocess(tmp, filename, false);
+        Buffer included = preprocess(tmp, filename, false, MacroMap);
         buffer_append_cstr(&out, included.data);
         free(tmp);
       } else {
@@ -142,7 +147,7 @@ Buffer preprocess(const char *src, const char *fname, bool debug) {
       while (*(head + j) &&
              (isalnum((unsigned char)*(head + j)) || *(head + j) == '_'))
         j++;
-      char macroName[j];
+      char macroName[j + 1];
       j = 0;
       while (*head && (isalnum((unsigned char)*head) || *head == '_')) {
         macroName[j] = *head;
@@ -167,29 +172,63 @@ Buffer preprocess(const char *src, const char *fname, bool debug) {
       hashmap_put(MacroMap, macroName, NULL);
       if (load_factor(MacroMap) > 0.7f)
         hashmap_resize(MacroMap, MacroMap->bucket_count * 2);
-      // store them as key-value pait in custom hash-map
+      // store them as key-value pair in custom hash-map
     } else if (strncmp(head, "#undef", 6) == 0) {
       // #undef <MACRO-NAME>
       head += 6;
       while (*head && isspace((unsigned char)*head))
         head++;
+      if (!isalpha((unsigned char)*head) && *head != '_') {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Invalid macro name\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
       size_t len = 0;
       while (*(head + len) &&
              (isalnum((unsigned char)*(head + len)) || *(head + len) == '_'))
         len++;
-      char macroName[len];
+      char macroName[len + 1];
       len = 0;
       while (*head && (isalnum((unsigned char)*head) || *head == '_')) {
         macroName[len] = *head;
         head++;
         len++;
       }
+      macroName[len] = '\0';
       if (hashmap_get(MacroMap, macroName) == NULL) {
         printf("%s line %zu : %s\n", fname, row, line);
         printf(ERROR "Macro not defined\n" COLOR_RESET);
         exit(EXIT_FAILURE);
       }
       hashmap_remove(MacroMap, macroName);
+
+    } else if (strncmp(head, "#ifdef", 6) == 0) {
+      // #ifdef <MACRO-NAME>
+      head += 6;
+      while (*head && isspace((unsigned char)*head))
+        head++;
+      if (!isalpha((unsigned char)*head) && *head != '_') {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Invalid macro name\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
+      size_t len = 0;
+      while (*(head + len) &&
+             (isalnum((unsigned char)*(head + len)) || *(head + len) == '_'))
+        len++;
+      char macroName[len + 1];
+      len = 0;
+      while (*head && (isalnum((unsigned char)*head) || *head == '_')) {
+        macroName[len] = *head;
+        head++;
+        len++;
+      }
+      macroName[len] = '\0';
+      if (hashmap_get(MacroMap, macroName) == NULL) {
+        // SKIP TILL ELSE OR ENDIF
+      } else {
+        // PRE-PROCESS TILL ELSE OR ENDIF
+      }
 
     } else {
       // Normal line of code
@@ -206,10 +245,9 @@ Buffer preprocess(const char *src, const char *fname, bool debug) {
   }
   return out;
 }
-// #define (empty ,acros only)
-// #undef
+// #define (empty macros only)  DONE
+// #undef                       DONE
 // #ifdef
 // #ifndef
 // #else
 // #endif
-// #pragma once

@@ -139,12 +139,16 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
           printf(ERROR "Expected closing \"\n" COLOR_RESET);
           exit(EXIT_FAILURE);
         }
+        head++;
+        while (*head && isspace((unsigned char)*head))
+          head++;
         if (*head) {
           // TRAILING SPACES
           printf("%s line %zu : %s\n", fname, row, line);
-          printf("Invalid macro else\n");
+          printf("Invalid macro include\n");
           exit(EXIT_FAILURE);
         }
+
         filename[j] = '\0';
 
         char *tmp = read_file(filename);
@@ -375,6 +379,7 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
     } else if (!cb || cb->current_active) {
       // Normal line of code
       buffer_append_cstr(&out, line);
+      buffer_append_cstr(&out, "\n");
     }
     if (src[i] == '\n')
       i++;

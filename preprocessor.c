@@ -394,7 +394,7 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
            fname);
     exit(EXIT_FAILURE);
   }
-  stack_destroy(ifStack); // stack owns all pointers, frees all of them at once
+  stack_destroy(ifStack);
   if (incomingMacroMap == NULL)
     hashmap_destroy(MacroMap);
   return out;

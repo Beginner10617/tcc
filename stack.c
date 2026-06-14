@@ -53,7 +53,10 @@ void stack_pop(stack *stk) {
     printf(WARNING "Trying to pop an empty stack\n" COLOR_RESET);
 }
 
-void stack_clear(stack *stk) { stk->size = 0; }
+void stack_clear(stack *stk) {
+  while (stk->size)
+    stack_pop(stk);
+}
 
 void stack_destroy(stack *stk) {
   for (size_t i = 0; i < stk->size; i++) {

@@ -6,6 +6,7 @@
 #include "stdio.h"
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define ERROR "\x1b[31m"
@@ -94,6 +95,7 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
   // include, ifndef, endif, define in future
   size_t i = 0, line_start, line_end, line_len, row = 0;
   while (src[i] != '\0') {
+    ConditionalBlock *cb = stack_top(ifStack);
     row++;
     line_start = i;
     while (src[i] != '\0' && src[i] != '\n') {
@@ -112,10 +114,14 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
       head++;
 
     // handle preprocess
-    if (strncmp(head, "#include", 8) == 0) {
+    if (strncmp(head, "#include", 8) == 0 && (!cb || cb->current_active)) {
       // #include
       head += 8;
-
+      if (!isspace((unsigned char)*head)) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Invalid pre-processing macro\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
       while (*head && isspace((unsigned char)*head))
         head++;
 
@@ -133,6 +139,12 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
           printf(ERROR "Expected closing \"\n" COLOR_RESET);
           exit(EXIT_FAILURE);
         }
+        if (*head) {
+          // TRAILING SPACES
+          printf("%s line %zu : %s\n", fname, row, line);
+          printf("Invalid macro else\n");
+          exit(EXIT_FAILURE);
+        }
         filename[j] = '\0';
 
         char *tmp = read_file(filename);
@@ -140,14 +152,21 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
         Buffer included = preprocess(tmp, filename, false, MacroMap);
         buffer_append_cstr(&out, included.data);
         free(tmp);
+        free(included.data);
       } else {
         printf("%s line %zu : %s\n", fname, row, line);
         printf(ERROR "Expected a \"\n" COLOR_RESET);
         exit(EXIT_FAILURE);
       }
-    } else if (strncmp(head, "#define", 7) == 0) {
+    } else if (strncmp(head, "#define", 7) == 0 &&
+               (!cb || cb->current_active)) {
       // #define <MACRO-NAME>
       head += 7;
+      if (!isspace((unsigned char)*head)) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Invalid pre-processing macro\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
       while (*head && isspace((unsigned char)*head))
         head++;
       if (!isalpha((unsigned char)*head) && *head != '_') {
@@ -168,7 +187,7 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
       }
       macroName[j] = '\0';
       // is it already defined?
-      if (hashmap_get(MacroMap, macroName) != NULL) {
+      if (hashmap_contains(MacroMap, macroName)) {
         // warn of re-definition
         printf("%s line %zu : %s\n", fname, row, line);
         printf(WARNING "Re-defining macro %s\n" COLOR_RESET, macroName);
@@ -185,9 +204,14 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
       if (load_factor(MacroMap) > 0.7f)
         hashmap_resize(MacroMap, MacroMap->bucket_count * 2);
       // store them as key-value pair in custom hash-map
-    } else if (strncmp(head, "#undef", 6) == 0) {
+    } else if (strncmp(head, "#undef", 6) == 0 && (!cb || cb->current_active)) {
       // #undef <MACRO-NAME>
       head += 6;
+      if (!isspace((unsigned char)*head)) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Invalid pre-processing macro\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
       while (*head && isspace((unsigned char)*head))
         head++;
       if (!isalpha((unsigned char)*head) && *head != '_') {
@@ -207,7 +231,7 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
         len++;
       }
       macroName[len] = '\0';
-      if (hashmap_get(MacroMap, macroName) == NULL) {
+      if (!hashmap_contains(MacroMap, macroName)) {
         printf("%s line %zu : %s\n", fname, row, line);
         printf(ERROR "Macro not defined\n" COLOR_RESET);
         exit(EXIT_FAILURE);
@@ -225,6 +249,11 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
     } else if (strncmp(head, "#ifdef", 6) == 0) {
       // #ifdef <MACRO-NAME>
       head += 6;
+      if (!isspace((unsigned char)*head)) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Invalid pre-processing macro\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
       while (*head && isspace((unsigned char)*head))
         head++;
       if (!isalpha((unsigned char)*head) && *head != '_') {
@@ -252,18 +281,24 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
         printf("Invalid macro if\n");
         exit(EXIT_FAILURE);
       }
-      ConditionalBlock *cb = create_conditional();
-      cb->parent_active = true;
+      ConditionalBlock *new_cb = create_conditional();
+      new_cb->parent_active = true;
       if (ifStack->size)
-        cb->parent_active =
+        new_cb->parent_active =
             ((ConditionalBlock *)stack_top(ifStack))->current_active;
-      cb->conditional_true = hashmap_get(MacroMap, macroName) != NULL;
-      cb->seen_else = false;
-      cb->current_active = cb->parent_active && cb->conditional_true;
-      stack_push(ifStack, cb);
+      new_cb->conditional_true = hashmap_contains(MacroMap, macroName);
+      new_cb->seen_else = false;
+      new_cb->current_active =
+          new_cb->parent_active && new_cb->conditional_true;
+      stack_push(ifStack, new_cb);
     } else if (strncmp(head, "#ifndef", 7) == 0) {
       // ifndef <MACRO-NAME>
       head += 7;
+      if (!isspace((unsigned char)*head)) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "Invalid pre-processing macro\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
       while (*head && isspace((unsigned char)*head))
         head++;
       if (!isalpha((unsigned char)*head) && *head != '_') {
@@ -291,26 +326,55 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
         printf("Invalid macro if\n");
         exit(EXIT_FAILURE);
       }
-      ConditionalBlock *cb = malloc(sizeof(ConditionalBlock));
-      cb->parent_active = true;
+      ConditionalBlock *new_cb = create_conditional();
+      new_cb->parent_active = true;
       if (ifStack->size)
-        cb->parent_active =
+        new_cb->parent_active =
             ((ConditionalBlock *)stack_top(ifStack))->current_active;
-      cb->conditional_true = hashmap_get(MacroMap, macroName) == NULL;
-      cb->seen_else = false;
-      cb->current_active = cb->parent_active && cb->conditional_true;
-      stack_push(ifStack, cb);
-    } else if (strncmp(head, "#else", 5)) {
-
-    } else if (strncmp(head, "#endif", 6)) {
-
-    } else {
-      // Normal line of code
-      ConditionalBlock *cb = stack_top(ifStack);
-      if (!cb || cb->current_active) {
-        buffer_append_cstr(&out, line);
-        buffer_append_char(&out, '\n');
+      new_cb->conditional_true = !hashmap_contains(MacroMap, macroName);
+      new_cb->seen_else = false;
+      new_cb->current_active =
+          new_cb->parent_active && new_cb->conditional_true;
+      stack_push(ifStack, new_cb);
+    } else if (strncmp(head, "#else", 5) == 0) {
+      head += 5;
+      while (*head && isspace((unsigned char)*head))
+        head++;
+      if (*head) {
+        // TRAILING SPACES
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf("Invalid macro else\n");
+        exit(EXIT_FAILURE);
       }
+      if (cb == NULL || cb->seen_else) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        if (cb)
+          printf(ERROR "Multiple else for the same if macro\n" COLOR_RESET);
+        else
+          printf(ERROR "No if macro corresponsing to else\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
+      cb->seen_else = true;
+      cb->current_active = cb->parent_active && !cb->conditional_true;
+    } else if (strncmp(head, "#endif", 6) == 0) {
+      head += 6;
+      while (*head && isspace((unsigned char)*head))
+        head++;
+      if (*head) {
+        // TRAILING SPACES
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf("Invalid macro endif\n");
+        exit(EXIT_FAILURE);
+      }
+      if (cb == NULL) {
+        printf("%s line %zu : %s\n", fname, row, line);
+        printf(ERROR "No if corresponsing the endif macro\n" COLOR_RESET);
+        exit(EXIT_FAILURE);
+      }
+      stack_pop(ifStack); // free the associated void* too
+    } else if (!cb || cb->current_active) {
+      // Normal line of code
+      buffer_append_cstr(&out, line);
     }
     if (src[i] == '\n')
       i++;
@@ -320,10 +384,20 @@ Buffer preprocess(const char *src, const char *fname, bool debug,
     printf("Completed pre-processing, output:\n");
     printf("%s\n", out.data);
   }
+  if (ifStack->size) {
+    printf(ERROR "Unterminated conditional blocks in file %s\n" COLOR_RESET,
+           fname);
+    exit(EXIT_FAILURE);
+  }
+  stack_destroy(ifStack); // stack owns all pointers, frees all of them at once
+  if (incomingMacroMap == NULL)
+    hashmap_destroy(MacroMap);
   return out;
 }
-// #define (empty macros only)  DONE
-// #undef                       DONE
+// I = ignore if stack top is inactive
+// #include                     I
+// #define (empty macros only)  I
+// #undef                       I
 // #ifdef
 // #ifndef
 // #else

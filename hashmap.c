@@ -135,6 +135,21 @@ void *hashmap_get(HashMap *map, const char *key) {
   }
   return NULL;
 }
+bool hashmap_contains(HashMap *map, const char *key) {
+  if (map == NULL) {
+    printf(ERROR "NULL pointer passed as map\n" COLOR_RESET);
+    exit(EXIT_FAILURE);
+  }
+
+  size_t bucket_index = hash(key) % map->bucket_count;
+  Entry *curr = map->buckets[bucket_index];
+  while (curr != NULL) {
+    if (strcmp(curr->key, key) == 0)
+      return true;
+    curr = curr->next;
+  }
+  return false;
+}
 
 void hashmap_remove(HashMap *map, const char *key) {
   if (map == NULL) {
@@ -160,4 +175,22 @@ void hashmap_remove(HashMap *map, const char *key) {
     prev = curr;
     curr = curr->next;
   }
+}
+// helper
+void freeEntry(Entry *entry) {
+  if (entry == NULL)
+    return;
+  freeEntry(entry->next);
+  if (entry->key)
+    free(entry->key);
+  if (entry->value)
+    free(entry->value);
+  free(entry);
+}
+
+void hashmap_destroy(HashMap *map) {
+  for (size_t i = 0; i < map->bucket_count; i++)
+    freeEntry(map->buckets[i]);
+  free(map->buckets);
+  free(map);
 }

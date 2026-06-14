@@ -1,6 +1,7 @@
 #ifndef HASH_MAP
 #define HASH_MAP
 #include "stddef.h"
+#include <stdbool.h>
 typedef struct Entry {
   char *key;
   void *value;
@@ -23,6 +24,9 @@ unsigned long hash(const char *str);
 void hashmap_put(HashMap *map, const char *key, void *value);
 // accessing elements
 void *hashmap_get(HashMap *map, const char *key);
+bool hashmap_contains(HashMap *map, const char *key);
 // deletion
 void hashmap_remove(HashMap *map, const char *key);
+// destructor
+void hashmap_destroy(HashMap *map);
 #endif

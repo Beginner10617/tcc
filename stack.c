@@ -44,14 +44,22 @@ void *stack_top(stack *stk) {
   return NULL;
 }
 
-void *stack_pop(stack *stk) {
+void stack_pop(stack *stk) {
   if (stk->size) {
     stk->size--;
-    return stk->data[stk->size];
+    if (stk->data[stk->size])
+      free(stk->data[stk->size]);
   } else
     printf(WARNING "Trying to pop an empty stack\n" COLOR_RESET);
-
-  return NULL;
 }
 
 void stack_clear(stack *stk) { stk->size = 0; }
+
+void stack_destroy(stack *stk) {
+  for (size_t i = 0; i < stk->size; i++) {
+    if (stk->data[i])
+      free(stk->data[i]);
+  }
+  free(stk->data);
+  free(stk);
+}

@@ -60,6 +60,57 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
       } else if (strncmp(tokenizer->src + tokenizer->index, "extern", 6) == 0) {
         // Add extern token
       } // ...
+    } else if (peek == '(') {
+
+    } else if (peek == '[') {
+
+    } else if (peek == ')') {
+
+    } else if (peek == '+') {
+
+    } else if (peek == '-') {
+
+    } else if (peek == '*') {
+
+    } else if (peek == '/') {
+
+    } else if (peek == '.') {
+
+    } else if (peek == '"') {
+
+    } else if (peek == '{') {
+
+    } else if (peek == '}') {
+
+    } else if (peek == '=') {
+
+    } else if (peek == '!') {
+
+    } else if (peek == ':') {
+
+    } else if (peek == ',') {
+
+    } else if (peek == '<') {
+
+    } else if (peek == '>') {
+
+    } else if (peek == '%') {
+
+    } else if (peek == '&') {
+
+    } else if (peek == '|') {
+
+    } else if (peek == '~') {
+
+    } else if (peek == '\'') {
+
+    } else if (isdigit((unsigned char)peek)) {
+
+    } else if (isspace((unsigned char)peek)) {
+
+    } else if (peek == ';') {
+
+    } else {
     }
   }
   return out;

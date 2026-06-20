@@ -1,6 +1,8 @@
 #include "lexer.h"
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+
 Tokenizer CreateTokenizer(const char *src) {
   Tokenizer out;
   out.src = src;
@@ -42,5 +44,23 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
   TokenStream out;
   TokenStream_init(&out);
   // Tokenization loop
+  // tmp states
+  char peek;
+  size_t index, size;
+  while (TokenPeek(tokenizer, 0)) {
+    peek = TokenPeek(tokenizer, 0);
+    if (isalpha((unsigned char)peek)) {
+      index = tokenizer->index;
+      TokenConsume(tokenizer);
+      while (isalnum((unsigned char)TokenPeek(tokenizer, 0)) ||
+             TokenPeek(tokenizer, 0) == '_')
+        TokenConsume(tokenizer);
+      if (strncmp(tokenizer->src + tokenizer->index, "auto", 4) == 0) {
+        // Add auto token
+      } else if (strncmp(tokenizer->src + tokenizer->index, "extern", 6) == 0) {
+        // Add extern token
+      } // ...
+    }
+  }
   return out;
 }

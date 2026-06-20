@@ -79,10 +79,13 @@ typedef struct {
   Token *tokens;
   size_t size, cap;
 } TokenStream;
+// helper functions
+void TokenStream_init(TokenStream *tokenstream);
+void TokenStream_tokencopy(TokenStream *tokenstream, Token token);
 
 typedef struct {
   const char *src;
-  size_t index;
+  size_t index, size;
 } Tokenizer;
 
 Tokenizer CreateTokenizer(const char *src);

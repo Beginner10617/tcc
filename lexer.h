@@ -1,9 +1,11 @@
 #ifndef LEXER_H
 #define LEXER_H
+#include "stdbool.h"
 #include "stddef.h"
 #include "stdio.h"
 typedef enum {
   TOK_EOF,
+  TOK_EXTERN,
 
   // identifiers + literals
   TOK_IDENTIFIER,
@@ -16,14 +18,15 @@ typedef enum {
   TOK_IF,
   TOK_ELSE,
   TOK_WHILE,
+  TOK_DO,
   TOK_FOR,
   TOK_RETURN,
+  TOK_AUTO_KW,
   TOK_INT_KW,
   TOK_CHAR_KW,
   TOK_FLOAT_KW,
   TOK_VOID,
   TOK_STRUCT,
-  TOK_SIZEOF,
 
   // punctuation
   TOK_LPAREN,
@@ -92,5 +95,6 @@ Tokenizer CreateTokenizer(const char *src);
 char TokenPeek(Tokenizer *tokenizer, size_t off); // return \0 is end
 char TokenConsume(Tokenizer *tokenizer);
 TokenStream Tokenize(Tokenizer *tokenizer);
-
+// helper function
+bool Tokenizer_current_is(Tokenizer *tokenizer, const char *name);
 #endif

@@ -40,6 +40,11 @@ void TokenStream_tokencopy(TokenStream *tokenstream, Token token) {
   tokenstream->tokens[tokenstream->size] = token;
 }
 
+bool Tokenizer_current_is(Tokenizer *tokenizer, const char *name) {
+  size_t len = strlen(name);
+  return strncmp(tokenizer->src + tokenizer->index, name, len) == 0;
+}
+
 TokenStream Tokenize(Tokenizer *tokenizer) {
   TokenStream out;
   TokenStream_init(&out);
@@ -55,16 +60,48 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
       while (isalnum((unsigned char)TokenPeek(tokenizer, 0)) ||
              TokenPeek(tokenizer, 0) == '_')
         TokenConsume(tokenizer);
-      if (strncmp(tokenizer->src + tokenizer->index, "auto", 4) == 0) {
+      if (Tokenizer_current_is(tokenizer, "extern")) {
         // Add auto token
-      } else if (strncmp(tokenizer->src + tokenizer->index, "extern", 6) == 0) {
+      } else if (Tokenizer_current_is(tokenizer, "if")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "else")) {
         // Add extern token
-      } // ...
+      } else if (Tokenizer_current_is(tokenizer, "while")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "do")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "for")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "return")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "auto")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "int")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "char")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "float")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "void")) {
+
+      } else if (Tokenizer_current_is(tokenizer, "struct")) {
+      }
+
     } else if (peek == '(') {
+
+    } else if (peek == ')') {
+
+    } else if (peek == '{') {
+
+    } else if (peek == '}') {
 
     } else if (peek == '[') {
 
-    } else if (peek == ')') {
+    } else if (peek == ']') {
+
+    } else if (peek == ',') {
+
+    } else if (peek == ';') {
 
     } else if (peek == '+') {
 
@@ -74,43 +111,36 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
 
     } else if (peek == '/') {
 
-    } else if (peek == '.') {
-
-    } else if (peek == '"') {
-
-    } else if (peek == '{') {
-
-    } else if (peek == '}') {
+    } else if (peek == '%') {
 
     } else if (peek == '=') {
 
     } else if (peek == '!') {
 
-    } else if (peek == ':') {
-
-    } else if (peek == ',') {
-
     } else if (peek == '<') {
 
     } else if (peek == '>') {
-
-    } else if (peek == '%') {
 
     } else if (peek == '&') {
 
     } else if (peek == '|') {
 
+    } else if (peek == '^') {
+
     } else if (peek == '~') {
 
-    } else if (peek == '\'') {
+    } else if (peek == '.') {
+
+    } else if (peek == '?') {
+
+    } else if (peek == ':') {
 
     } else if (isdigit((unsigned char)peek)) {
 
     } else if (isspace((unsigned char)peek)) {
 
-    } else if (peek == ';') {
-
     } else {
+      // Invalid token, throw error
     }
   }
   return out;

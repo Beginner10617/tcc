@@ -1,9 +1,11 @@
 #include "lexer.h"
-
+#include <stdlib.h>
+#include <string.h>
 Tokenizer CreateTokenizer(const char *src) {
   Tokenizer out;
   out.src = src;
   out.index = 0;
+  out.size = strlen(src);
   return out;
 }
 
@@ -21,3 +23,24 @@ char TokenConsume(Tokenizer *tokenizer) {
 }
 
 // helper functions
+void TokenStream_init(TokenStream *tokenstream) {
+  tokenstream->size = 0;
+  tokenstream->cap = 1;
+  tokenstream->tokens = malloc(sizeof(Token));
+}
+void TokenStream_tokencopy(TokenStream *tokenstream, Token token) {
+  if (tokenstream->size >= tokenstream->cap) {
+    while (tokenstream->size >= tokenstream->cap)
+      tokenstream->cap *= 2;
+    tokenstream->tokens =
+        realloc(tokenstream->tokens, tokenstream->cap * sizeof(Token));
+  }
+  tokenstream->tokens[tokenstream->size] = token;
+}
+
+TokenStream Tokenize(Tokenizer *tokenizer) {
+  TokenStream out;
+  TokenStream_init(&out);
+  // Tokenization loop
+  return out;
+}

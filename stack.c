@@ -27,7 +27,7 @@ void stack_push(stack *stk, void *data) {
     stk->size++;
   } else {
     while (stk->size >= stk->cap)
-      stk->cap++;
+      stk->cap *= 2;
     stk->data = realloc(stk->data, stk->cap * sizeof(void *));
     if (stk->data == NULL) {
       printf(ERROR "Unable to realloc space for stack\n" COLOR_RESET);

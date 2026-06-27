@@ -2,9 +2,13 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#define ERROR "\x1b[31m"
+#define WARNING "\033[33m"
+#define COLOR_RESET "\x1b[0m"
 
-Tokenizer CreateTokenizer(const char *src) {
+Tokenizer CreateTokenizer(const char *src, const char *filename) {
   Tokenizer out;
+  out.filename = filename;
   out.src = src;
   out.index = 0;
   out.size = strlen(src);
@@ -38,11 +42,29 @@ void TokenStream_tokencopy(TokenStream *tokenstream, Token token) {
         realloc(tokenstream->tokens, tokenstream->cap * sizeof(Token));
   }
   tokenstream->tokens[tokenstream->size] = token;
+  tokenstream->size++;
 }
 
 bool Tokenizer_current_is(Tokenizer *tokenizer, const char *name) {
   size_t len = strlen(name);
-  return strncmp(tokenizer->src + tokenizer->index, name, len) == 0;
+  if (len > tokenizer->index)
+    return false;
+  const char *origin = tokenizer->src + tokenizer->index - len;
+  return strncmp(origin, name, len) == 0;
+}
+
+// helper function
+void error_message(size_t row, const char *line, const char *fname,
+                   const char *message) {
+  printf("%s line %zu : ", fname, row);
+  size_t index = 0;
+  while (line[index] && line[index] != '\n') {
+    printf("%c", line[index]);
+    index++;
+  }
+  printf("\n");
+  printf(ERROR "%s\n" COLOR_RESET, message);
+  exit(EXIT_FAILURE);
 }
 
 TokenStream Tokenize(Tokenizer *tokenizer) {
@@ -51,97 +73,333 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
   // Tokenization loop
   // tmp states
   char peek;
-  size_t index, size;
+  const char *curr_line = tokenizer->src;
+  Token tmp;
+  size_t row = 0;
   while (TokenPeek(tokenizer, 0)) {
     peek = TokenPeek(tokenizer, 0);
+    tmp.start = tokenizer->src + tokenizer->index;
     if (isalpha((unsigned char)peek)) {
-      index = tokenizer->index;
+      tmp.len = 1;
       TokenConsume(tokenizer);
       while (isalnum((unsigned char)TokenPeek(tokenizer, 0)) ||
-             TokenPeek(tokenizer, 0) == '_')
+             TokenPeek(tokenizer, 0) == '_') {
         TokenConsume(tokenizer);
-      if (Tokenizer_current_is(tokenizer, "extern")) {
-        // Add auto token
-      } else if (Tokenizer_current_is(tokenizer, "if")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "else")) {
-        // Add extern token
-      } else if (Tokenizer_current_is(tokenizer, "while")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "do")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "for")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "return")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "auto")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "int")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "char")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "float")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "void")) {
-
-      } else if (Tokenizer_current_is(tokenizer, "struct")) {
+        tmp.len++;
       }
-
+      if (Tokenizer_current_is(tokenizer, "extern")) {
+        tmp.type = TOK_EXTERN;
+      } else if (Tokenizer_current_is(tokenizer, "if")) {
+        tmp.type = TOK_IF;
+      } else if (Tokenizer_current_is(tokenizer, "else")) {
+        tmp.type = TOK_ELSE;
+      } else if (Tokenizer_current_is(tokenizer, "while")) {
+        tmp.type = TOK_WHILE;
+      } else if (Tokenizer_current_is(tokenizer, "do")) {
+        tmp.type = TOK_DO;
+      } else if (Tokenizer_current_is(tokenizer, "for")) {
+        tmp.type = TOK_FOR;
+      } else if (Tokenizer_current_is(tokenizer, "return")) {
+        tmp.type = TOK_RETURN;
+      } else if (Tokenizer_current_is(tokenizer, "auto")) {
+        tmp.type = TOK_AUTO_KW;
+      } else if (Tokenizer_current_is(tokenizer, "int")) {
+        tmp.type = TOK_INT_KW;
+      } else if (Tokenizer_current_is(tokenizer, "char")) {
+        tmp.type = TOK_CHAR_KW;
+      } else if (Tokenizer_current_is(tokenizer, "float")) {
+        tmp.type = TOK_FLOAT_KW;
+      } else if (Tokenizer_current_is(tokenizer, "void")) {
+        tmp.type = TOK_VOID;
+      } else if (Tokenizer_current_is(tokenizer, "struct")) {
+        tmp.type = TOK_STRUCT;
+      } else if (Tokenizer_current_is(tokenizer, "enum")) {
+        tmp.type = TOK_ENUM;
+      } else {
+        tmp.type = TOK_IDENTIFIER;
+      }
     } else if (peek == '(') {
-
+      tmp.len = 1;
+      tmp.type = TOK_LPAREN;
+      TokenConsume(tokenizer);
     } else if (peek == ')') {
-
+      tmp.len = 1;
+      tmp.type = TOK_RPAREN;
+      TokenConsume(tokenizer);
     } else if (peek == '{') {
-
+      tmp.len = 1;
+      tmp.type = TOK_LBRACE;
+      TokenConsume(tokenizer);
     } else if (peek == '}') {
-
+      tmp.len = 1;
+      tmp.type = TOK_RBRACE;
+      TokenConsume(tokenizer);
     } else if (peek == '[') {
-
+      tmp.len = 1;
+      tmp.type = TOK_LBRACKET;
+      TokenConsume(tokenizer);
     } else if (peek == ']') {
-
+      tmp.len = 1;
+      tmp.type = TOK_RBRACKET;
+      TokenConsume(tokenizer);
     } else if (peek == ',') {
-
+      tmp.len = 1;
+      tmp.type = TOK_COMMA;
+      TokenConsume(tokenizer);
     } else if (peek == ';') {
-
+      tmp.len = 1;
+      tmp.type = TOK_SEMICOLON;
+      TokenConsume(tokenizer);
     } else if (peek == '+') {
-
+      if (TokenPeek(tokenizer, 1) == '+') {
+        tmp.len = 2;
+        tmp.type = TOK_PLUSPLUS;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_PLUS;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '-') {
-
+      if (TokenPeek(tokenizer, 1) == '-') {
+        tmp.len = 2;
+        tmp.type = TOK_MINUSMINUS;
+        TokenConsume(tokenizer);
+      } else if (TokenPeek(tokenizer, 1) == '>') {
+        tmp.len = 2;
+        tmp.type = TOK_ARROW;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_MINUS;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '*') {
-
+      tmp.len = 1;
+      tmp.type = TOK_STAR;
+      TokenConsume(tokenizer);
     } else if (peek == '/') {
-
+      if (TokenPeek(tokenizer, 1) == '/') {
+        // single line comment
+        TokenConsume(tokenizer);
+        TokenConsume(tokenizer);
+        while (TokenPeek(tokenizer, 0) && TokenPeek(tokenizer, 0) != '\n')
+          TokenConsume(tokenizer);
+        TokenConsume(tokenizer); // consume newline
+        continue;                // don't add tmp
+      } else if (TokenPeek(tokenizer, 1) == '*') {
+        // multi line comment
+        TokenConsume(tokenizer);
+        TokenConsume(tokenizer);
+        while (TokenPeek(tokenizer, 0) && TokenPeek(tokenizer, 0) == '*' &&
+               TokenPeek(tokenizer, 1) && TokenPeek(tokenizer, 1) == '/')
+          TokenConsume(tokenizer);
+        // consume * and /
+        TokenConsume(tokenizer);
+        TokenConsume(tokenizer);
+        continue; // dont' add tmp
+      }
+      tmp.len = 1;
+      tmp.type = TOK_SLASH;
+      TokenConsume(tokenizer);
     } else if (peek == '%') {
-
+      tmp.len = 1;
+      tmp.type = TOK_PERCENT;
+      TokenConsume(tokenizer);
     } else if (peek == '=') {
-
+      if (TokenPeek(tokenizer, 1) == '=') {
+        tmp.len = 2;
+        tmp.type = TOK_EQEQ;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_EQ;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '!') {
-
+      if (TokenPeek(tokenizer, 1) == '=') {
+        tmp.len = 2;
+        tmp.type = TOK_NEQ;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_NOT;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '<') {
-
+      if (TokenPeek(tokenizer, 1) == '<') {
+        tmp.len = 2;
+        tmp.type = TOK_LSHIFT;
+        TokenConsume(tokenizer);
+      } else if (TokenPeek(tokenizer, 1) == '=') {
+        tmp.len = 2;
+        tmp.type = TOK_LTE;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_LT;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '>') {
-
+      if (TokenPeek(tokenizer, 1) == '>') {
+        tmp.len = 2;
+        tmp.type = TOK_RSHIFT;
+        TokenConsume(tokenizer);
+      } else if (TokenPeek(tokenizer, 1) == '=') {
+        tmp.len = 2;
+        tmp.type = TOK_GTE;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_GT;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '&') {
-
+      if (TokenPeek(tokenizer, 1) == '&') {
+        tmp.len = 2;
+        tmp.type = TOK_ANDAND;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_AMP;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '|') {
-
+      if (TokenPeek(tokenizer, 1) == '|') {
+        tmp.len = 2;
+        tmp.type = TOK_OROR;
+        TokenConsume(tokenizer);
+      } else {
+        tmp.len = 1;
+        tmp.type = TOK_PIPE;
+      }
+      TokenConsume(tokenizer);
     } else if (peek == '^') {
-
+      tmp.len = 1;
+      tmp.type = TOK_CARET;
+      TokenConsume(tokenizer);
     } else if (peek == '~') {
-
+      tmp.len = 1;
+      tmp.type = TOK_TILDE;
+      TokenConsume(tokenizer);
     } else if (peek == '.') {
-
+      tmp.len = 1;
+      tmp.type = TOK_DOT;
+      TokenConsume(tokenizer);
     } else if (peek == '?') {
-
+      tmp.len = 1;
+      tmp.type = TOK_QUESTION;
+      TokenConsume(tokenizer);
     } else if (peek == ':') {
+      tmp.len = 1;
+      tmp.type = TOK_COLON;
+      TokenConsume(tokenizer);
+    } else if (peek == '\'') {
+      // char literal
+      TokenConsume(tokenizer);
+      // resolution of valid/invalid char will
+      // be done during parsing, since handling
+      // escape sequences is not easy
+      tmp.type = TOK_CHAR;
+      while (TokenPeek(tokenizer, 0)) {
+        char c = TokenPeek(tokenizer, 0);
+        if (c == '\n') {
+          // error - newline in char literal
+          error_message(row, curr_line, tokenizer->filename,
+                        "Newline inside char literal");
+        } else if (c == '\\') {
+          TokenConsume(tokenizer);
+          if (!TokenPeek(tokenizer, 0)) {
+            // error - undetermined escape sequence
+            error_message(row, curr_line, tokenizer->filename,
+                          "Undetermined esape sequence");
+          }
+          TokenConsume(tokenizer);
+          continue;
+        } else if (c == '\'')
+          break;
+        else
+          TokenConsume(tokenizer);
+      }
+      if (TokenPeek(tokenizer, 0) != '\'') {
+        // error - Unterminated char literal
+        error_message(row, curr_line, tokenizer->filename,
+                      "Unterminated char literal");
+      }
+      TokenConsume(tokenizer);
+      tmp.len = tokenizer->src + tokenizer->index - tmp.start;
+    } else if (peek == '"') {
+      // string literal
+      TokenConsume(tokenizer);
 
+      tmp.type = TOK_STRING;
+      while (TokenPeek(tokenizer, 0)) {
+        char c = TokenPeek(tokenizer, 0);
+        if (c == '\n') {
+          // error - newline in char literal
+          error_message(row, curr_line, tokenizer->filename,
+                        "Newline inside string literal");
+        } else if (c == '\\') {
+          TokenConsume(tokenizer);
+          if (!TokenPeek(tokenizer, 0)) {
+            // error - undetermined escape sequence
+            error_message(row, curr_line, tokenizer->filename,
+                          "Undetermined esape sequence");
+          }
+          TokenConsume(tokenizer);
+          continue;
+        } else if (c == '"')
+          break;
+        else
+          TokenConsume(tokenizer);
+      }
+      if (TokenPeek(tokenizer, 0) != '"') {
+        // error - Unterminated char literal
+        error_message(row, curr_line, tokenizer->filename,
+                      "Unterminated string literal");
+      }
+      TokenConsume(tokenizer);
+      tmp.len = tokenizer->src + tokenizer->index - tmp.start;
     } else if (isdigit((unsigned char)peek)) {
+      // integer or float literal
+      bool is_float = false;
+      tmp.len = 0;
+      while (isdigit((unsigned char)TokenPeek(tokenizer, 0)) ||
+             TokenPeek(tokenizer, 0) == '.') {
+        if (!is_float && TokenPeek(tokenizer, 0) == '.')
+          is_float = true;
+        else if (TokenPeek(tokenizer, 0) == '.')
+          // multiple dots
+          error_message(row, curr_line, tokenizer->filename,
+                        "Invalid float literal\n");
+        TokenConsume(tokenizer);
+        tmp.len++;
+      }
+      if (is_float && TokenPeek(tokenizer, 0) != 'f')
+        error_message(row, curr_line, tokenizer->filename,
+                      "Invalid float literal, should end with an 'f'");
+      else if (is_float) {
+        TokenConsume(tokenizer); // consume the f
+        tmp.len++;
+        tmp.type = TOK_FLOAT;
+      } else // int literal
+        tmp.type = TOK_INT;
 
     } else if (isspace((unsigned char)peek)) {
-
+      if (peek == '\n') {
+        curr_line = tokenizer->src + tokenizer->index + 1;
+        row++;
+      }
+      TokenConsume(tokenizer);
+      continue; // Don't store tmp
     } else {
-      // Invalid token, throw error
+      error_message(row, curr_line, tokenizer->filename, "Invalid token");
     }
+    TokenStream_tokencopy(&out, tmp);
   }
+  tmp.start = tokenizer->src + tokenizer->index;
+  tmp.len = 1;
+  tmp.type = TOK_EOF;
+  TokenStream_tokencopy(&out, tmp);
   return out;
 }

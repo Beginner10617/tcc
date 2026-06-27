@@ -27,6 +27,7 @@ typedef enum {
   TOK_FLOAT_KW,
   TOK_VOID,
   TOK_STRUCT,
+  TOK_ENUM,
 
   // punctuation
   TOK_LPAREN,
@@ -56,6 +57,8 @@ typedef enum {
   TOK_ANDAND,
   TOK_OROR,
   TOK_NOT,
+  TOK_LSHIFT,
+  TOK_RSHIFT,
 
   TOK_AMP,
   TOK_PIPE,
@@ -87,11 +90,12 @@ void TokenStream_init(TokenStream *tokenstream);
 void TokenStream_tokencopy(TokenStream *tokenstream, Token token);
 
 typedef struct {
+  const char *filename;
   const char *src;
   size_t index, size;
 } Tokenizer;
 
-Tokenizer CreateTokenizer(const char *src);
+Tokenizer CreateTokenizer(const char *src, const char *filename);
 char TokenPeek(Tokenizer *tokenizer, size_t off); // return \0 is end
 char TokenConsume(Tokenizer *tokenizer);
 TokenStream Tokenize(Tokenizer *tokenizer);

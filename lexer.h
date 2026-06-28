@@ -9,10 +9,14 @@ typedef enum {
 
   // identifiers + literals
   TOK_IDENTIFIER,
-  TOK_INT,
-  TOK_FLOAT,
+  TOK_NUMBER,
   TOK_CHAR,
   TOK_STRING,
+
+  // qualifiers
+  TOK_CONST,
+  TOK_SIGNED,
+  TOK_UNSIGNED,
 
   // keywords
   TOK_IF,
@@ -22,11 +26,17 @@ typedef enum {
   TOK_FOR,
   TOK_RETURN,
   TOK_AUTO_KW,
+  TOK_REGISTER_KW,
+  TOK_TYPEDEF,
+  TOK_SHORT_KW,
   TOK_INT_KW,
+  TOK_LONG_KW,
   TOK_CHAR_KW,
   TOK_FLOAT_KW,
+  TOK_DOUBLE_KW,
   TOK_VOID,
   TOK_STRUCT,
+  TOK_UNION,
   TOK_ENUM,
 
   // punctuation

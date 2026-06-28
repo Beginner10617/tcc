@@ -89,6 +89,12 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
       }
       if (Tokenizer_current_is(tokenizer, "extern")) {
         tmp.type = TOK_EXTERN;
+      } else if (Tokenizer_current_is(tokenizer, "const")) {
+        tmp.type = TOK_CONST;
+      } else if (Tokenizer_current_is(tokenizer, "signed")) {
+        tmp.type = TOK_SIGNED;
+      } else if (Tokenizer_current_is(tokenizer, "unsigned")) {
+        tmp.type = TOK_UNSIGNED;
       } else if (Tokenizer_current_is(tokenizer, "if")) {
         tmp.type = TOK_IF;
       } else if (Tokenizer_current_is(tokenizer, "else")) {
@@ -101,18 +107,30 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
         tmp.type = TOK_FOR;
       } else if (Tokenizer_current_is(tokenizer, "return")) {
         tmp.type = TOK_RETURN;
+      } else if (Tokenizer_current_is(tokenizer, "short")) {
+        tmp.type = TOK_SHORT_KW;
       } else if (Tokenizer_current_is(tokenizer, "auto")) {
         tmp.type = TOK_AUTO_KW;
+      } else if (Tokenizer_current_is(tokenizer, "register")) {
+        tmp.type = TOK_REGISTER_KW;
+      } else if (Tokenizer_current_is(tokenizer, "typedef")) {
+        tmp.type = TOK_TYPEDEF;
       } else if (Tokenizer_current_is(tokenizer, "int")) {
         tmp.type = TOK_INT_KW;
+      } else if (Tokenizer_current_is(tokenizer, "long")) {
+        tmp.type = TOK_LONG_KW;
       } else if (Tokenizer_current_is(tokenizer, "char")) {
         tmp.type = TOK_CHAR_KW;
       } else if (Tokenizer_current_is(tokenizer, "float")) {
         tmp.type = TOK_FLOAT_KW;
+      } else if (Tokenizer_current_is(tokenizer, "double")) {
+        tmp.type = TOK_DOUBLE_KW;
       } else if (Tokenizer_current_is(tokenizer, "void")) {
         tmp.type = TOK_VOID;
       } else if (Tokenizer_current_is(tokenizer, "struct")) {
         tmp.type = TOK_STRUCT;
+      } else if (Tokenizer_current_is(tokenizer, "union")) {
+        tmp.type = TOK_UNION;
       } else if (Tokenizer_current_is(tokenizer, "enum")) {
         tmp.type = TOK_ENUM;
       } else {
@@ -371,19 +389,16 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
         else if (TokenPeek(tokenizer, 0) == '.')
           // multiple dots
           error_message(row, curr_line, tokenizer->filename,
-                        "Invalid float literal\n");
+                        "Invalid number literal\n");
         TokenConsume(tokenizer);
         tmp.len++;
       }
-      if (is_float && TokenPeek(tokenizer, 0) != 'f')
-        error_message(row, curr_line, tokenizer->filename,
-                      "Invalid float literal, should end with an 'f'");
-      else if (is_float) {
+      if (is_float && (TokenPeek(tokenizer, 0) == 'f') ||
+          TokenPeek(tokenizer, 0) == 'F') {
         TokenConsume(tokenizer); // consume the f
         tmp.len++;
-        tmp.type = TOK_FLOAT;
-      } else // int literal
-        tmp.type = TOK_INT;
+      }
+      tmp.type = TOK_NUMBER;
 
     } else if (isspace((unsigned char)peek)) {
       if (peek == '\n') {

@@ -49,17 +49,23 @@ void debug_print_Token(Token token) {
   case TOK_IDENTIFIER:
     printf("IDENTIFIER");
     break;
-  case TOK_INT:
-    printf("INT LITERAL");
-    break;
-  case TOK_FLOAT:
-    printf("FLOAT LITERAL");
+  case TOK_NUMBER:
+    printf("NUMBER LITERAL");
     break;
   case TOK_CHAR:
     printf("CHAR LITERAL");
     break;
   case TOK_STRING:
     printf("STRING LITERAL");
+    break;
+  case TOK_CONST:
+    printf("CONST");
+    break;
+  case TOK_SIGNED:
+    printf("SIGNED");
+    break;
+  case TOK_UNSIGNED:
+    printf("UNSIGNED");
     break;
   case TOK_IF:
     printf("IF");
@@ -82,8 +88,20 @@ void debug_print_Token(Token token) {
   case TOK_AUTO_KW:
     printf("AUTO KEYWORD");
     break;
+  case TOK_REGISTER_KW:
+    printf("REGISTER KEYWORD");
+    break;
+  case TOK_TYPEDEF:
+    printf("TYPEDEF");
+    break;
+  case TOK_SHORT_KW:
+    printf("SHORT KEYWORD");
+    break;
   case TOK_INT_KW:
     printf("INT KEYWORD");
+    break;
+  case TOK_LONG_KW:
+    printf("LONG KEYWORD");
     break;
   case TOK_CHAR_KW:
     printf("CHAR KEYWORD");
@@ -91,11 +109,17 @@ void debug_print_Token(Token token) {
   case TOK_FLOAT_KW:
     printf("FLOAT KEYWORD");
     break;
+  case TOK_DOUBLE_KW:
+    printf("DOUBLE KEYWORD");
+    break;
   case TOK_VOID:
     printf("VOID KEYWORD");
     break;
   case TOK_STRUCT:
     printf("STRUCT");
+    break;
+  case TOK_UNION:
+    printf("UNION");
     break;
   case TOK_ENUM:
     printf("ENUM");

@@ -58,9 +58,6 @@ void debug_print_Token(Token token) {
   case TOK_STRING:
     printf("STRING LITERAL");
     break;
-  case TOK_CONST:
-    printf("CONST");
-    break;
   case TOK_SIGNED:
     printf("SIGNED");
     break;

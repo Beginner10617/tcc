@@ -89,8 +89,6 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
       }
       if (Tokenizer_current_is(tokenizer, "extern")) {
         tmp.type = TOK_EXTERN;
-      } else if (Tokenizer_current_is(tokenizer, "const")) {
-        tmp.type = TOK_CONST;
       } else if (Tokenizer_current_is(tokenizer, "signed")) {
         tmp.type = TOK_SIGNED;
       } else if (Tokenizer_current_is(tokenizer, "unsigned")) {

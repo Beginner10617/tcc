@@ -14,7 +14,6 @@ typedef enum {
   TOK_STRING,
 
   // qualifiers
-  TOK_CONST,
   TOK_SIGNED,
   TOK_UNSIGNED,
 

@@ -14,7 +14,10 @@ typedef enum {
   TY_UNION,
   TY_ENUM,
 } TypeKind;
-typedef enum { QF_SIGNED, QF_UNSIGNED, QF_CONST } TypeQualifier;
+typedef enum {
+  QF_SIGNED,
+  QF_UNSIGNED,
+} TypeQualifier;
 typedef struct parameter parameter;
 typedef struct Type Type;
 typedef struct {

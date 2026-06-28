@@ -1,5 +1,5 @@
 #include "test.h"
-int main() {
+int main(...) {
   int x = 42;
   char *test = "Test";
   test[2] = 'e';

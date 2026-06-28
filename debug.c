@@ -85,9 +85,6 @@ void debug_print_Token(Token token) {
   case TOK_AUTO_KW:
     printf("AUTO KEYWORD");
     break;
-  case TOK_REGISTER_KW:
-    printf("REGISTER KEYWORD");
-    break;
   case TOK_TYPEDEF:
     printf("TYPEDEF");
     break;

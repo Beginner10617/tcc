@@ -109,8 +109,6 @@ TokenStream Tokenize(Tokenizer *tokenizer) {
         tmp.type = TOK_SHORT_KW;
       } else if (Tokenizer_current_is(tokenizer, "auto")) {
         tmp.type = TOK_AUTO_KW;
-      } else if (Tokenizer_current_is(tokenizer, "register")) {
-        tmp.type = TOK_REGISTER_KW;
       } else if (Tokenizer_current_is(tokenizer, "typedef")) {
         tmp.type = TOK_TYPEDEF;
       } else if (Tokenizer_current_is(tokenizer, "int")) {

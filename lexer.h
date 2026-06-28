@@ -25,7 +25,6 @@ typedef enum {
   TOK_FOR,
   TOK_RETURN,
   TOK_AUTO_KW,
-  TOK_REGISTER_KW,
   TOK_TYPEDEF,
   TOK_SHORT_KW,
   TOK_INT_KW,
